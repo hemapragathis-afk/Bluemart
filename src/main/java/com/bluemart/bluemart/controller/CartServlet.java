@@ -41,6 +41,7 @@ public class CartServlet extends HttpServlet {
             resp.setStatus(200);
             resp.getWriter().write(gson.toJson(new Envelope(true, items, null)));
         } catch (SQLException e) {
+            e.printStackTrace();
             resp.setStatus(500);
             resp.getWriter().write(gson.toJson(new Envelope(false, null, "SERVER_ERROR")));
         }
@@ -64,6 +65,7 @@ public class CartServlet extends HttpServlet {
             resp.setStatus(400);
             resp.getWriter().write(gson.toJson(new Envelope(false, null, e.getMessage())));
         } catch (SQLException e) {
+            e.printStackTrace();
             resp.setStatus(500);
             resp.getWriter().write(gson.toJson(new Envelope(false, null, "SERVER_ERROR")));
         }
@@ -84,6 +86,7 @@ public class CartServlet extends HttpServlet {
             resp.setStatus(200);
             resp.getWriter().write(gson.toJson(new Envelope(true, Map.of("updated", true), null)));
         } catch (SQLException e) {
+            e.printStackTrace();
             resp.setStatus(500);
             resp.getWriter().write(gson.toJson(new Envelope(false, null, "SERVER_ERROR")));
         }
@@ -104,6 +107,7 @@ public class CartServlet extends HttpServlet {
             resp.setStatus(200);
             resp.getWriter().write(gson.toJson(new Envelope(true, Map.of("removed", true), null)));
         } catch (SQLException e) {
+            e.printStackTrace();
             resp.setStatus(500);
             resp.getWriter().write(gson.toJson(new Envelope(false, null, "SERVER_ERROR")));
         }

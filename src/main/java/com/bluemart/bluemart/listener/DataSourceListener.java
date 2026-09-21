@@ -30,13 +30,14 @@ public class DataSourceListener implements ServletContextListener {
         config.setMaximumPoolSize(10);
         dataSource = new HikariDataSource(config);
 
-        runSchema();
+        runSqlFile("/db/schema.sql");
+        runSqlFile("/db/seed.sql");
     }
 
-    private void runSchema() {
-        try (InputStream in = getClass().getResourceAsStream("/db/schema.sql")) {
+    private void runSqlFile(String classpathPath) {
+        try (InputStream in = getClass().getResourceAsStream(classpathPath)) {
             if (in == null) {
-                System.err.println("schema.sql not found on classpath at /db/schema.sql");
+                System.err.println(classpathPath + " not found on classpath");
                 return;
             }
 
@@ -56,10 +57,10 @@ public class DataSourceListener implements ServletContextListener {
                         stmt.execute(trimmed);
                     }
                 }
-                System.out.println("schema.sql executed successfully - tables created.");
+                System.out.println(classpathPath + " executed successfully.");
             }
         } catch (Exception e) {
-            System.err.println("Failed to execute schema.sql:");
+            System.err.println("Failed to execute " + classpathPath + ":");
             e.printStackTrace();
         }
     }

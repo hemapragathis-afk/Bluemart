@@ -2,6 +2,7 @@ package com.bluemart.bluemart.controller;
 
 import com.bluemart.bluemart.model.Product;
 import com.bluemart.bluemart.service.ProductService;
+import com.bluemart.bluemart.util.GsonUtil;
 import com.google.gson.Gson;
 
 import javax.servlet.ServletException;
@@ -17,7 +18,7 @@ import java.util.List;
 @WebServlet("/api/v1/products")
 public class ProductServlet extends HttpServlet {
     private final ProductService productService = new ProductService();
-    private final Gson gson = new Gson();
+    private final Gson gson = GsonUtil.getGson();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {

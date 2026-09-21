@@ -3,6 +3,7 @@ package com.bluemart.bluemart.controller;
 import com.bluemart.bluemart.exception.ValidationException;
 import com.bluemart.bluemart.model.Order;
 import com.bluemart.bluemart.service.OrderService;
+import com.bluemart.bluemart.util.GsonUtil;
 import com.google.gson.Gson;
 
 import javax.servlet.annotation.WebServlet;
@@ -19,7 +20,7 @@ import java.util.Map;
 @WebServlet("/api/v1/orders")
 public class OrderServlet extends HttpServlet {
     private final OrderService orderService = new OrderService();
-    private final Gson gson = new Gson();
+    private final Gson gson = GsonUtil.getGson();
 
     private Integer currentUserId(HttpServletRequest req) {
         HttpSession session = req.getSession(false);
@@ -44,6 +45,7 @@ public class OrderServlet extends HttpServlet {
             resp.setStatus(400);
             resp.getWriter().write(gson.toJson(new Envelope(false, null, e.getMessage())));
         } catch (SQLException e) {
+            e.printStackTrace();
             resp.setStatus(500);
             resp.getWriter().write(gson.toJson(new Envelope(false, null, "SERVER_ERROR")));
         }
@@ -67,6 +69,7 @@ public class OrderServlet extends HttpServlet {
             resp.setStatus(200);
             resp.getWriter().write(gson.toJson(new Envelope(true, orders, null)));
         } catch (SQLException e) {
+            e.printStackTrace();
             resp.setStatus(500);
             resp.getWriter().write(gson.toJson(new Envelope(false, null, "SERVER_ERROR")));
         }
