@@ -45,6 +45,7 @@ public class AuthServlet extends HttpServlet {
             resp.setStatus(400);
             resp.getWriter().write(gson.toJson(new Envelope(false, null, e.getMessage())));
         } catch (SQLException e) {
+            e.printStackTrace();
             resp.setStatus(500);
             resp.getWriter().write(gson.toJson(new Envelope(false, null, "SERVER_ERROR")));
         }
@@ -70,6 +71,7 @@ public class AuthServlet extends HttpServlet {
             resp.setStatus(401);
             resp.getWriter().write(gson.toJson(new Envelope(false, null, e.getMessage())));
         } catch (SQLException e) {
+            e.printStackTrace();
             resp.setStatus(500);
             resp.getWriter().write(gson.toJson(new Envelope(false, null, "SERVER_ERROR")));
         }
