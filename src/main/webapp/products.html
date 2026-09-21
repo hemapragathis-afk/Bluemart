@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BlueMart - Products</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        .search-bar {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        .search-bar input {
+            padding: 10px;
+            width: 250px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .search-bar button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            width: 220px;
+            padding: 15px;
+            text-align: center;
+        }
+        .card img {
+            width: 100%;
+            border-radius: 4px;
+        }
+        .card h3 {
+            font-size: 16px;
+            margin: 10px 0 5px;
+        }
+        .card p {
+            color: #666;
+            font-size: 13px;
+            margin: 5px 0;
+        }
+        .card .price {
+            font-weight: bold;
+            color: #28a745;
+            font-size: 16px;
+        }
+        .card button {
+            width: 100%;
+            padding: 8px;
+            margin-top: 10px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .card button:hover {
+            background: #0056b3;
+        }
+        #status {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h2>BlueMart Products</h2>
+
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Search products...">
+        <button onclick="loadProducts()">Search</button>
+    </div>
+
+    <div id="productGrid" class="grid"></div>
+    <div id="status"></div>
+
+    <script>
+        async function loadProducts() {
+            const keyword = document.getElementById('searchInput').value;
+            const grid = document.getElementById('productGrid');
+            const status = document.getElementById('status');
+            grid.innerHTML = 'Loading...';
+            status.textContent = '';
+
+            try {
+                const url = keyword
+                    ? '/bluemart/api/v1/products?q=' + encodeURIComponent(keyword)
+                    : '/bluemart/api/v1/products';
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (!result.success) {
+                    grid.innerHTML = '';
+                    status.textContent = 'Failed to load products: ' + result.error;
+                    status.className = 'error';
+                    return;
+                }
+
+                if (result.data.length === 0) {
+                    grid.innerHTML = '';
+                    status.textContent = 'No products found.';
+                    status.className = '';
+                    return;
+                }
+
+                grid.innerHTML = result.data.map(p => `
+                    <div class="card">
+                        <img src="${p.imageUrl}" alt="${p.name}">
+                        <h3>${p.name}</h3>
+                        <p>${p.description}</p>
+                        <p class="price">₹${p.price}</p>
+                        <p>Stock: ${p.stockQty}</p>
+                        <button onclick="addToCart(${p.id})">Add to Cart</button>
+                    </div>
+                `).join('');
+            } catch (err) {
+                grid.innerHTML = '';
+                status.textContent = 'Something went wrong loading products.';
+                status.className = 'error';
+            }
+        }
+
+        async function addToCart(productId) {
+            const status = document.getElementById('status');
+            try {
+                const response = await fetch('/bluemart/api/v1/cart', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ productId: productId, quantity: 1 })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    status.textContent = 'Added to cart!';
+                    status.className = 'success';
+                } else if (response.status === 401) {
+                    status.textContent = 'Please log in first.';
+                    status.className = 'error';
+                } else {
+                    status.textContent = 'Failed to add: ' + result.error;
+                    status.className = 'error';
+                }
+            } catch (err) {
+                status.textContent = 'Something went wrong.';
+                status.className = 'error';
+            }
+        }
+
+        loadProducts();
+    </script>
+</body>
+</html>
