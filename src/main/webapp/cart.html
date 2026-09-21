@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BlueMart - Cart</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        .cart-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .cart-item {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .cart-item .details h3 {
+            margin: 0 0 5px;
+            font-size: 16px;
+        }
+        .cart-item .details p {
+            margin: 3px 0;
+            color: #666;
+            font-size: 13px;
+        }
+        .cart-item .controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .cart-item input[type="number"] {
+            width: 50px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .cart-item button {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .update-btn {
+            background: #007bff;
+            color: white;
+        }
+        .remove-btn {
+            background: #dc3545;
+            color: white;
+        }
+        .summary {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .summary .total {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .checkout-btn {
+            padding: 12px 30px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .checkout-btn:hover {
+            background: #1e7e34;
+        }
+        #status {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .error { color: red; }
+        .success { color: green; }
+        a.back-link {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h2>Your Cart</h2>
+    <div class="cart-container">
+        <div id="cartItems"></div>
+        <div class="summary">
+            <div class="total">Total: ₹<span id="totalAmount">0.00</span></div>
+            <button class="checkout-btn" onclick="placeOrder()">Place Order</button>
+        </div>
+        <div id="status"></div>
+        <a href="products.html" class="back-link">Continue Shopping</a>
+    </div>
+
+    <script>
+        async function loadCart() {
+            const container = document.getElementById('cartItems');
+            const status = document.getElementById('status');
+            container.innerHTML = 'Loading...';
+
+            try {
+                const response = await fetch('/bluemart/api/v1/cart');
+                const result = await response.json();
+
+                if (response.status === 401) {
+                    container.innerHTML = '';
+                    status.textContent = 'Please log in first.';
+                    status.className = 'error';
+                    return;
+                }
+
+                if (!result.success) {
+                    container.innerHTML = '';
+                    status.textContent = 'Failed to load cart: ' + result.error;
+                    status.className = 'error';
+                    return;
+                }
+
+                if (result.data.length === 0) {
+                    container.innerHTML = '<p style="text-align:center;">Your cart is empty.</p>';
+                    document.getElementById('totalAmount').textContent = '0.00';
+                    return;
+                }
+
+                let total = 0;
+                container.innerHTML = result.data.map(item => {
+                    const lineTotal = item.unitPrice * item.quantity;
+                    total += lineTotal;
+                    return `
+                        <div class="cart-item">
+                            <div class="details">
+                                <h3>${item.productName}</h3>
+                                <p>₹${item.unitPrice} each</p>
+                                <p>Line total: ₹${lineTotal.toFixed(2)}</p>
+                            </div>
+                            <div class="controls">
+                                <input type="number" min="1" value="${item.quantity}" id="qty-${item.productId}">
+                                <button class="update-btn" onclick="updateQuantity(${item.productId})">Update</button>
+                                <button class="remove-btn" onclick="removeItem(${item.productId})">Remove</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                document.getElementById('totalAmount').textContent = total.toFixed(2);
+            } catch (err) {
+                container.innerHTML = '';
+                status.textContent = 'Something went wrong loading the cart.';
+                status.className = 'error';
+            }
+        }
+
+        async function updateQuantity(productId) {
+            const status = document.getElementById('status');
+            const newQty = parseInt(document.getElementById('qty-' + productId).value);
+
+            try {
+                const response = await fetch('/bluemart/api/v1/cart', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ productId: productId, quantity: newQty })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    status.textContent = 'Quantity updated.';
+                    status.className = 'success';
+                    loadCart();
+                } else {
+                    status.textContent = 'Failed to update: ' + result.error;
+                    status.className = 'error';
+                }
+            } catch (err) {
+                status.textContent = 'Something went wrong.';
+                status.className = 'error';
+            }
+        }
+
+        async function removeItem(productId) {
+            const status = document.getElementById('status');
+            try {
+                const response = await fetch('/bluemart/api/v1/cart?productId=' + productId, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    status.textContent = 'Item removed.';
+                    status.className = 'success';
+                    loadCart();
+                } else {
+                    status.textContent = 'Failed to remove: ' + result.error;
+                    status.className = 'error';
+                }
+            } catch (err) {
+                status.textContent = 'Something went wrong.';
+                status.className = 'error';
+            }
+        }
+
+        async function placeOrder() {
+            const status = document.getElementById('status');
+            try {
+                const response = await fetch('/bluemart/api/v1/orders', { method: 'POST' });
+                const result = await response.json();
+
+                if (result.success) {
+                    status.textContent = 'Order placed successfully! Order ID: ' + result.data.orderId;
+                    status.className = 'success';
+                    loadCart();
+                } else {
+                    status.textContent = 'Failed to place order: ' + result.error;
+                    status.className = 'error';
+                }
+            } catch (err) {
+                status.textContent = 'Something went wrong.';
+                status.className = 'error';
+            }
+        }
+
+        loadCart();
+    </script>
+</body>
+</html>
