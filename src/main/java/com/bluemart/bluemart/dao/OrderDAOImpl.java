@@ -46,6 +46,9 @@ public class OrderDAOImpl implements OrderDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 List<Order> out = new ArrayList<>();
                 while (rs.next()) out.add(mapOrder(rs));
+                for (Order o : out) {
+                    o.setItems(loadItems(c, o.getId()));
+                }
                 return out;
             }
         }
@@ -63,6 +66,9 @@ public class OrderDAOImpl implements OrderDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 List<Order> out = new ArrayList<>();
                 while (rs.next()) out.add(mapOrder(rs));
+                for (Order o : out) {
+                    o.setItems(loadItems(c, o.getId()));
+                }
                 return out;
             }
         }
@@ -79,11 +85,15 @@ public class OrderDAOImpl implements OrderDAO {
                 if (!rs.next()) return null;
                 order = mapOrder(rs);
             }
+            order.setItems(loadItems(c, orderId));
         }
+        return order;
+    }
+
+    private List<OrderItem> loadItems(Connection c, int orderId) throws SQLException {
         String itemSql = "SELECT oi.*, p.name AS product_name FROM order_items oi " +
                 "JOIN products p ON oi.product_id = p.id WHERE oi.order_id=?";
-        try (Connection c = DataSourceListener.getDataSource().getConnection();
-             PreparedStatement ps = c.prepareStatement(itemSql)) {
+        try (PreparedStatement ps = c.prepareStatement(itemSql)) {
             ps.setInt(1, orderId);
             try (ResultSet rs = ps.executeQuery()) {
                 List<OrderItem> items = new ArrayList<>();
@@ -97,10 +107,9 @@ public class OrderDAOImpl implements OrderDAO {
                     oi.setProductName(rs.getString("product_name"));
                     items.add(oi);
                 }
-                order.setItems(items);
+                return items;
             }
         }
-        return order;
     }
 
     private Order mapOrder(ResultSet rs) throws SQLException {
