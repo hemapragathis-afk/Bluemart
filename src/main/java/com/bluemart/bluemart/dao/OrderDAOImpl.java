@@ -90,6 +90,17 @@ public class OrderDAOImpl implements OrderDAO {
         return order;
     }
 
+    @Override
+    public void updateStatus(int orderId, String status) throws SQLException {
+        String sql = "UPDATE orders SET status = ? WHERE id = ?";
+        try (Connection c = DataSourceListener.getDataSource().getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setInt(2, orderId);
+            ps.executeUpdate();
+        }
+    }
+
     private List<OrderItem> loadItems(Connection c, int orderId) throws SQLException {
         String itemSql = "SELECT oi.*, p.name AS product_name FROM order_items oi " +
                 "JOIN products p ON oi.product_id = p.id WHERE oi.order_id=?";

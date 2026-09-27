@@ -65,4 +65,19 @@ public class OrderService {
     public Order getOrderDetail(int orderId) throws SQLException {
         return orderDAO.findById(orderId);
     }
+
+    public void updateOrderStatus(int orderId, int sellerId, String newStatus) throws SQLException {
+        List<String> validStatuses = List.of("PENDING", "CONFIRMED", "SHIPPED", "DELIVERED", "CANCELLED");
+        if (!validStatuses.contains(newStatus)) {
+            throw new ValidationException("Invalid status: " + newStatus);
+        }
+
+        List<Order> sellerOrders = orderDAO.findBySeller(sellerId);
+        boolean ownsOrder = sellerOrders.stream().anyMatch(o -> o.getId() == orderId);
+        if (!ownsOrder) {
+            throw new ValidationException("Order not found or not associated with your products");
+        }
+
+        orderDAO.updateStatus(orderId, newStatus);
+    }
 }

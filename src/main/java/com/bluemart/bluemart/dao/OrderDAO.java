@@ -12,4 +12,5 @@ public interface OrderDAO {
     List<Order> findByBuyer(int buyerId) throws SQLException;
     List<Order> findBySeller(int sellerId) throws SQLException;
     Order findById(int orderId) throws SQLException;
+    void updateStatus(int orderId, String status) throws SQLException;
 }

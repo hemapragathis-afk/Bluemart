@@ -27,6 +27,11 @@ public class OrderServlet extends HttpServlet {
         return session == null ? null : (Integer) session.getAttribute("userId");
     }
 
+    private String currentRole(HttpServletRequest req) {
+        HttpSession session = req.getSession(false);
+        return session == null ? null : (String) session.getAttribute("role");
+    }
+
     // POST /api/v1/orders -> place order from current cart (mock payment confirmation)
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
@@ -75,5 +80,46 @@ public class OrderServlet extends HttpServlet {
         }
     }
 
+    // PUT /api/v1/orders?id=X -> seller updates order status (e.g. mark SHIPPED, DELIVERED)
+    @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        resp.setContentType("application/json");
+        Integer userId = currentUserId(req);
+        String role = currentRole(req);
+        if (userId == null) {
+            resp.setStatus(401);
+            resp.getWriter().write(gson.toJson(new Envelope(false, null, "UNAUTHENTICATED")));
+            return;
+        }
+        if (!"SELLER".equals(role)) {
+            resp.setStatus(403);
+            resp.getWriter().write(gson.toJson(new Envelope(false, null, "FORBIDDEN_NOT_A_SELLER")));
+            return;
+        }
+
+        String idParam = req.getParameter("id");
+        if (idParam == null) {
+            resp.setStatus(400);
+            resp.getWriter().write(gson.toJson(new Envelope(false, null, "MISSING_ID")));
+            return;
+        }
+
+        try {
+            int orderId = Integer.parseInt(idParam);
+            StatusRequest body = gson.fromJson(req.getReader(), StatusRequest.class);
+            orderService.updateOrderStatus(orderId, userId, body.status());
+            resp.setStatus(200);
+            resp.getWriter().write(gson.toJson(new Envelope(true, Map.of("updated", true), null)));
+        } catch (ValidationException e) {
+            resp.setStatus(400);
+            resp.getWriter().write(gson.toJson(new Envelope(false, null, e.getMessage())));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            resp.setStatus(500);
+            resp.getWriter().write(gson.toJson(new Envelope(false, null, "SERVER_ERROR")));
+        }
+    }
+
+    private record StatusRequest(String status) {}
     private record Envelope(boolean success, Object data, String error) {}
 }
