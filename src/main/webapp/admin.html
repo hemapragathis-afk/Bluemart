@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BlueMart - Admin Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        .toggle-bar {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        .toggle-bar button {
+            padding: 8px 20px;
+            border: 1px solid #343a40;
+            background: white;
+            color: #343a40;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .toggle-bar button.active {
+            background: #343a40;
+            color: white;
+        }
+        table {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        th {
+            background: #343a40;
+            color: white;
+        }
+        .role-badge {
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+        }
+        .role-badge.BUYER { background: #007bff; }
+        .role-badge.SELLER { background: #28a745; }
+        .role-badge.ADMIN { background: #dc3545; }
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+        }
+        .status-badge.PENDING { background: #ffc107; color: #333; }
+        .status-badge.CONFIRMED { background: #17a2b8; }
+        .status-badge.SHIPPED { background: #007bff; }
+        .status-badge.DELIVERED { background: #28a745; }
+        .status-badge.CANCELLED { background: #dc3545; }
+        .remove-btn {
+            padding: 5px 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        #status-msg {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h2>Admin Panel</h2>
+
+    <div class="toggle-bar">
+        <button id="usersBtn" class="active" onclick="switchView('users')">Users</button>
+        <button id="ordersBtn" onclick="switchView('orders')">Orders</button>
+        <button id="productsBtn" onclick="switchView('products')">Products</button>
+    </div>
+
+    <div id="content"></div>
+    <div id="status-msg"></div>
+
+    <script>
+        let currentView = 'users';
+
+        function switchView(view) {
+            currentView = view;
+            document.getElementById('usersBtn').className = view === 'users' ? 'active' : '';
+            document.getElementById('ordersBtn').className = view === 'orders' ? 'active' : '';
+            document.getElementById('productsBtn').className = view === 'products' ? 'active' : '';
+            loadData();
+        }
+
+        async function loadData() {
+            const content = document.getElementById('content');
+            const statusMsg = document.getElementById('status-msg');
+            content.innerHTML = 'Loading...';
+            statusMsg.textContent = '';
+
+            try {
+                const response = await fetch('/bluemart/api/v1/admin/' + currentView);
+                const result = await response.json();
+
+                if (response.status === 403) {
+                    content.innerHTML = '';
+                    statusMsg.textContent = 'Access denied. Admins only.';
+                    statusMsg.className = 'error';
+                    return;
+                }
+                if (response.status === 401) {
+                    content.innerHTML = '';
+                    statusMsg.textContent = 'Please log in as an admin first.';
+                    statusMsg.className = 'error';
+                    return;
+                }
+                if (!result.success) {
+                    content.innerHTML = '';
+                    statusMsg.textContent = 'Failed to load: ' + result.error;
+                    statusMsg.className = 'error';
+                    return;
+                }
+
+                if (currentView === 'users') {
+                    renderUsers(result.data);
+                } else if (currentView === 'orders') {
+                    renderOrders(result.data);
+                } else if (currentView === 'products') {
+                    renderProducts(result.data);
+                }
+            } catch (err) {
+                content.innerHTML = '';
+                statusMsg.textContent = 'Something went wrong loading data.';
+                statusMsg.className = 'error';
+            }
+        }
+
+        function renderUsers(users) {
+            const content = document.getElementById('content');
+            if (users.length === 0) {
+                content.innerHTML = '<p style="text-align:center;">No users found.</p>';
+                return;
+            }
+            content.innerHTML = `
+                <table>
+                    <tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Joined</th></tr>
+                    ${users.map(u => `
+                        <tr>
+                            <td>${u.id}</td>
+                            <td>${u.name}</td>
+                            <td>${u.email}</td>
+                            <td><span class="role-badge ${u.role}">${u.role}</span></td>
+                            <td>${new Date(u.createdAt).toLocaleDateString()}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            `;
+        }
+
+        function renderOrders(orders) {
+            const content = document.getElementById('content');
+            if (orders.length === 0) {
+                content.innerHTML = '<p style="text-align:center;">No orders found.</p>';
+                return;
+            }
+            content.innerHTML = `
+                <table>
+                    <tr><th>Order ID</th><th>Buyer ID</th><th>Status</th><th>Total</th><th>Date</th></tr>
+                    ${orders.map(o => `
+                        <tr>
+                            <td>${o.id}</td>
+                            <td>${o.buyerId}</td>
+                            <td><span class="status-badge ${o.status}">${o.status}</span></td>
+                            <td>₹${o.totalAmount}</td>
+                            <td>${new Date(o.createdAt).toLocaleString()}</td>
+                        </tr>
+                    `).join('')}
+                </table>
+            `;
+        }
+
+        function renderProducts(products) {
+            const content = document.getElementById('content');
+            if (products.length === 0) {
+                content.innerHTML = '<p style="text-align:center;">No products found.</p>';
+                return;
+            }
+            content.innerHTML = `
+                <table>
+                    <tr><th>ID</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Seller ID</th><th></th></tr>
+                    ${products.map(p => `
+                        <tr>
+                            <td>${p.id}</td>
+                            <td>${p.name}</td>
+                            <td>${p.category}</td>
+                            <td>₹${p.price}</td>
+                            <td>${p.stockQty}</td>
+                            <td>${p.sellerId}</td>
+                            <td><button class="remove-btn" onclick="removeProduct(${p.id})">Remove</button></td>
+                        </tr>
+                    `).join('')}
+                </table>
+            `;
+        }
+
+        async function removeProduct(productId) {
+            const statusMsg = document.getElementById('status-msg');
+            try {
+                const response = await fetch('/bluemart/api/v1/admin/products?id=' + productId, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    statusMsg.textContent = 'Product removed.';
+                    statusMsg.className = 'success';
+                    loadData();
+                } else {
+                    statusMsg.textContent = 'Failed to remove: ' + result.error;
+                    statusMsg.className = 'error';
+                }
+            } catch (err) {
+                statusMsg.textContent = 'Something went wrong.';
+                statusMsg.className = 'error';
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
