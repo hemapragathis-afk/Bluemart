@@ -34,6 +34,7 @@ public class DataSourceListener implements ServletContextListener {
         dataSource = new HikariDataSource(config);
 
         runSqlFile("/db/schema.sql");
+        seedDemoSellerAccount();
         runSqlFile("/db/seed.sql");
         seedAdminAccount();
     }
@@ -65,6 +66,35 @@ public class DataSourceListener implements ServletContextListener {
             }
         } catch (Exception e) {
             System.err.println("Failed to execute " + classpathPath + ":");
+            e.printStackTrace();
+        }
+    }
+
+    private void seedDemoSellerAccount() {
+        // seed.sql hardcodes seller_id=1 for sample products, so we must ensure
+        // a user with id=1 exists first, on a completely fresh database.
+        String checkSql = "SELECT COUNT(*) FROM users WHERE id = 1";
+        String insertSql = "INSERT INTO users (name, email, password_hash, role, created_at) " +
+                "VALUES ('Demo Seller', 'seller1@bluemart.com', ?, 'SELLER', CURRENT_TIMESTAMP)";
+
+        try (Connection conn = dataSource.getConnection()) {
+            try (Statement checkStmt = conn.createStatement();
+                 ResultSet rs = checkStmt.executeQuery(checkSql)) {
+                rs.next();
+                if (rs.getInt(1) > 0) {
+                    System.out.println("Demo seller account (id=1) already exists.");
+                    return;
+                }
+            }
+
+            String hash = BCrypt.hashpw("seller123", BCrypt.gensalt());
+            try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                ps.setString(1, hash);
+                ps.executeUpdate();
+                System.out.println("Demo seller account created: seller1@bluemart.com / seller123");
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to seed demo seller account:");
             e.printStackTrace();
         }
     }
