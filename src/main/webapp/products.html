@@ -130,12 +130,15 @@
 
                 grid.innerHTML = result.data.map(p => `
                     <div class="card">
-                        <img src="${p.imageUrl}" alt="${p.name}">
-                        <h3>${p.name}</h3>
+    <a href="product-detail.html?id=${p.id}" style="text-decoration:none; color:inherit;">
+        <img src="${p.imageUrl}" alt="${p.name}">
+        <h3>${p.name}</h3>
+    </a>
                         <p>${p.description}</p>
                         <p class="price">₹${p.price}</p>
                         <p>Stock: ${p.stockQty}</p>
                         <button onclick="addToCart(${p.id})">Add to Cart</button>
+<a href="product-detail.html?id=${p.id}" style="display:block; margin-top:8px; font-size:13px; color:#007bff;">View Details & Reviews</a>
                     </div>
                 `).join('');
             } catch (err) {
