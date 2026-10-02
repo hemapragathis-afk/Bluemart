@@ -2,6 +2,7 @@ package com.bluemart.bluemart.listener;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.mindrot.jbcrypt.BCrypt;
 
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -13,6 +14,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.Statement;
 
 @WebListener
@@ -32,6 +35,7 @@ public class DataSourceListener implements ServletContextListener {
 
         runSqlFile("/db/schema.sql");
         runSqlFile("/db/seed.sql");
+        seedAdminAccount();
     }
 
     private void runSqlFile(String classpathPath) {
@@ -61,6 +65,33 @@ public class DataSourceListener implements ServletContextListener {
             }
         } catch (Exception e) {
             System.err.println("Failed to execute " + classpathPath + ":");
+            e.printStackTrace();
+        }
+    }
+
+    private void seedAdminAccount() {
+        String checkSql = "SELECT COUNT(*) FROM users WHERE role = 'ADMIN'";
+        String insertSql = "INSERT INTO users (name, email, password_hash, role, created_at) " +
+                "VALUES ('Admin', 'admin@bluemart.com', ?, 'ADMIN', CURRENT_TIMESTAMP)";
+
+        try (Connection conn = dataSource.getConnection()) {
+            try (Statement checkStmt = conn.createStatement();
+                 ResultSet rs = checkStmt.executeQuery(checkSql)) {
+                rs.next();
+                if (rs.getInt(1) > 0) {
+                    System.out.println("Admin account already exists.");
+                    return;
+                }
+            }
+
+            String hash = BCrypt.hashpw("admin123", BCrypt.gensalt());
+            try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                ps.setString(1, hash);
+                ps.executeUpdate();
+                System.out.println("Admin account created: admin@bluemart.com / admin123");
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to seed admin account:");
             e.printStackTrace();
         }
     }

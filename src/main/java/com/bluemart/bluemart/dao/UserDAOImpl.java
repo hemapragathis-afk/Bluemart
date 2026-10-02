@@ -4,6 +4,8 @@ import com.bluemart.bluemart.listener.DataSourceListener;
 import com.bluemart.bluemart.model.User;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UserDAOImpl implements UserDAO {
 
@@ -47,6 +49,18 @@ public class UserDAOImpl implements UserDAO {
             }
         }
         throw new SQLException("User insert failed");
+    }
+
+    @Override
+    public List<User> findAll() throws SQLException {
+        String sql = "SELECT * FROM users ORDER BY created_at DESC";
+        try (Connection c = DataSourceListener.getDataSource().getConnection();
+             PreparedStatement ps = c.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            List<User> out = new ArrayList<>();
+            while (rs.next()) out.add(map(rs));
+            return out;
+        }
     }
 
     private User map(ResultSet rs) throws SQLException {
