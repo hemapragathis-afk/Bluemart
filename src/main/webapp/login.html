@@ -91,6 +91,11 @@
                 if (result.success) {
                     messageDiv.textContent = 'Login successful! Welcome, ' + result.data.name;
                     messageDiv.className = 'success';
+                    var role = result.data.role;
+                    var redirectUrl = '/bluemart/products.html';
+                    if (role === 'ADMIN') { redirectUrl = '/bluemart/admin.html'; }
+                    else if (role === 'SELLER') { redirectUrl = '/bluemart/orders.html'; }
+                    setTimeout(function() { window.location.href = redirectUrl; }, 800);
                 } else {
                     messageDiv.textContent = 'Login failed: ' + result.error;
                     messageDiv.className = 'error';
